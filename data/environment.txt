@@ -1,0 +1,10 @@
+Recorded UTC: 2026-10-11T22:01:46.915915900Z
+OS: Windows 11 10.0 amd64
+Java: 17.0.20.1+1
+Available logical processors: 16
+CPU: AMD Ryzen 7 260 w/ Radeon 780M Graphics (AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD)
+Physical RAM (GiB): 31.3
+Maximum JVM heap (MiB): 2048
+Scala: 2.13.16
+Additional warmups: 5 per dataset; recorded runs: 11; discarded: run 0; averaged: runs 1..10
+Seed: 20261011; sizes: 16, 64, 1024, 8192, 16384, 65536, 1048576
