@@ -35,21 +35,29 @@ Worst case expands to Θ(n) + Θ(n−1) + … + Θ(1) = Θ(n²); the master theo
 
 The 3-way partition is what makes repeated values cheap: elements equal to the pivot are never processed again.
 
-Space: O(n). Recursion is replaced by a `@tailrec` loop over a list of pending tasks, so the JVM stack never overflows.
+Space: O(n). Instead of two recursive calls, `sortWithAcc` is a single `@tailrec` loop over a list of pending groups, so the JVM stack never grows, even in the worst case. Groups are processed greatest first and prepended to the output, so no list is ever reversed.
 
 ## 3. Closest pair of points
 
-The initial sort by x is Θ(n log n). Each recursive call then does Θ(n) work: split, merge the y-sorted halves, build the strip and compare each strip point with at most 7 neighbours.
+Validation, conversion and the initial sort by x (Merge Sort) cost Θ(n) + Θ(n log n).
+
+Each recursive call then splits the points (Θ(n)), builds the strip (Θ(n)), **sorts the strip by y with Merge Sort (Θ(n log n) in the worst case, when every point is in the strip)** and compares each strip point with at most 7 neighbours (Θ(n)). Groups of at most 3 points are solved by brute force in Θ(1).
 
 ```
-C(n) = 2C(n/2) + Θ(n)  →  Θ(n log n)
+C(n) = 2C(n/2) + Θ(n log n)
 ```
 
-Total: **Θ(n log n)**.
+The master theorem with f(n) = Θ(n log n) = Θ(n^(log_b a) · log n) gives case 2 with k = 1:
 
-The assignment suggests re-sorting the strip by y in every call, which gives C(n) = 2C(n/2) + Θ(n log n) = Θ(n log² n). Instead, each call returns its points sorted by y and the parent merges them in linear time, as in Merge Sort.
+**C(n) = Θ(n log² n)**
 
-Space: O(n) plus O(log n) stack frames.
+The same result by levels: level i has 2^i subproblems of size n/2^i, each costing Θ((n/2^i) log(n/2^i)), so level i costs Θ(n (log n − i)). Adding the log n levels gives Θ(n · (log n + (log n − 1) + … + 1)) = Θ(n log² n).
+
+Total: Θ(n log n) + Θ(n log² n) = **Θ(n log² n)**.
+
+This follows the algorithm described in the assignment, which re-sorts the strip in every call. Returning each half already sorted by y and merging the halves in linear time would lower the cost to Θ(n log n); that version was not chosen, to keep the recursion simple.
+
+Space: O(n), plus O(log n) stack frames because the split is always by position at the middle.
 
 ## Summary
 
@@ -57,4 +65,4 @@ Space: O(n) plus O(log n) stack frames.
 |---|---|---|
 | Inversions | Θ(n log n) | O(n) |
 | 3-way Quick Sort | expected Θ(n log n), worst Θ(n²), all equal Θ(n) | O(n) |
-| Closest pair | Θ(n log n) | O(n) |
+| Closest pair | Θ(n log² n) | O(n) |

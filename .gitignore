@@ -1,9 +1,72 @@
+# ==========================================
+# Scala / sbt
+# ==========================================
 target/
-.bsp/
-.metals/
 project/target/
 project/project/
+.bsp/
+.metals/
+.bloop/
+.scala-build/
+.scala/
+
+# ==========================================
+# IDEs and editors
+# ==========================================
 .idea/
 .vscode/
+*.iml
+*.ipr
+*.iws
+*.sublime-workspace
+
+# ==========================================
+# Operating system files
+# ==========================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ==========================================
+# Temporary files and logs
+# ==========================================
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+*.orig
+
+# ==========================================
+# Python (auxiliary scripts)
+# ==========================================
 __pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ==========================================
+# Local environment and secrets
+# ==========================================
+.env
+.env.*
+!.env.example
+*.local
+
+# ==========================================
+# Team notes and temporary repositories
+# ==========================================
 notas-equipo/
+temp-history/
+
+# ==========================================
+# Test and coverage reports
+# ==========================================
+coverage/
+.coverage
+htmlcov/
+test-results/

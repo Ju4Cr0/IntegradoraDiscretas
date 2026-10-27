@@ -7,7 +7,9 @@ from statistics import mean, stdev
 ROOT = Path(__file__).resolve().parents[1]
 FIGURES = ROOT / 'doc/figures'
 LABELS = {'inversions': 'Inversions', 'quicksort': '3-way Quick Sort', 'closest': 'Closest pair'}
-MODELS = {'n': lambda n: n, 'n log n': lambda n: n * math.log2(n), 'n²': lambda n: n * n}
+MODELS = {'n': lambda n: n, 'n log n': lambda n: n * math.log2(n),
+          'n log² n': lambda n: n * math.log2(n) ** 2, 'n²': lambda n: n * n}
+THEORY = {'duplicates': 'n', 'closest': 'n log² n'}
 COLORS = ['#146b9e', '#dd7d23', '#438a56', '#b53a4b', '#7b5ea7']
 
 
@@ -102,7 +104,7 @@ def main():
         fits = {name: fit([f(n) for n in ns], ys) for name, f in MODELS.items()}
         best = max(fits, key=lambda name: fits[name][2])
         a, b, _ = fits[best]
-        theory = 'n' if scenario == 'duplicates' else 'n log n'
+        theory = THEORY.get(scenario, THEORY.get(algorithm, 'n log n'))
         title = f'{LABELS[algorithm]} — {scenario}'
         xs = grid(ns[0], ns[-1])
         fitted.append((title, xs, [a * MODELS[best](x) + b for x in xs], False))
@@ -124,7 +126,8 @@ def main():
     environment = (ROOT / 'data/environment.txt').read_text(encoding='utf-8').strip()
     report = REPORT.format(environment=environment, sizes=', '.join(f'{n:,}' for n in all_n), runs=runs,
                            sections='\n'.join(sections), summary='\n'.join(summary),
-                           before=f'{all_n[-2]:,}', after=f'{all_n[-1]:,}', models=' | '.join(f'R² {m}' for m in MODELS))
+                           before=f'{all_n[-2]:,}', after=f'{all_n[-1]:,}', models=' | '.join(f'R² {m}' for m in MODELS),
+                           align='---:|' * (len(MODELS) + 2))
     (ROOT / 'doc/experiment-report.md').write_text(report, encoding='utf-8')
     print('\n'.join(summary))
 
@@ -142,7 +145,8 @@ Same machine for every run, JVM with `-Xms256m -Xmx2g`:
 - **Sizes:** {sizes}. Categories follow the assignment: Toy < 10², Small < 10⁴, Medium < 10⁵, Large ≥ 10⁶.
 - **Scenarios:** random and descending lists (inversions); random values and only 5 distinct values (Quick Sort); random points in a 10⁹ range (closest pair).
 - **Procedure:** inputs come from a fixed seed and are saved to `data/input-*.txt`. Each input gets 5 untimed warm-up runs, then {runs} + 1 timed runs; the first timed run is discarded and the other {runs} are averaged. Raw times are in `data/raw.csv`.
-- **Fitting:** least squares of `a·f(n) + b` (a, b ≥ 0) for f(n) = n, n log n and n². Each plot shows the measurements, the best fit and the theoretical curve scaled to the last point.
+- **Fitting:** least squares of `a·f(n) + b` (a, b ≥ 0) for f(n) = n, n log n, n log² n and n². Each plot shows the measurements, the best fit and the theoretical curve scaled to the last point.
+- **Theory:** Θ(n log n) for inversions and random Quick Sort, Θ(n) for Quick Sort with 5 distinct values (O(n·k) with fixed k), and Θ(n log² n) for closest pair, which re-sorts the strip in every call (see `complexity.md`).
 
 ## Results
 
@@ -154,17 +158,17 @@ Same machine for every run, JVM with `-Xms256m -Xmx2g`:
 "Growth" is how much the time multiplies from n = {before} to n = {after}.
 
 | Scenario | Theory | Best fit | {models} | Measured growth | Theoretical growth |
-|---|---|---|---:|---:|---:|---:|---:|
+|---|---|---|{align}
 {summary}
 
 ## Analysis
 
-- **Pattern:** time grows steadily with n in every scenario; nothing grows exponentially.
-- **Best fit vs. theory:** the best-fitting model matches the theoretical complexity in every scenario: n log n, except Quick Sort with 5 distinct values, which is linear (O(n·k) with fixed k).
-- **Why every R² is high:** the largest size dominates the least-squares error, so any increasing curve near that point scores well. The growth columns and the log-log plots are better evidence.
-- **Does theory predict the time?** It predicts the shape of the growth, not the milliseconds. At n ≈ 10⁶ random inputs grow somewhat faster than predicted, because immutable lists use hundreds of MB and the garbage collector works harder.
-- **3-way partition:** with 5 distinct values Quick Sort is over 10× faster than on random values at the largest size.
-- **Unusual sizes:** Toy times are microseconds, so clock noise dominates. Some scenarios barely change between 8,192 and 16,384 because of JIT optimisation between series.
+- **Pattern:** time grows steadily with n in every scenario; nothing grows quadratically or exponentially.
+- **R² does not separate the models:** the R² of n, n log n and n log² n differ only in the fourth decimal, because the largest size dominates the least-squares error and any increasing curve near that point scores well. The "best fit" column only shows the model with the slightly higher R², so it is not evidence on its own.
+- **Growth factor is the better evidence:** multiplying n by 16 multiplies the time by about ×16 for n, ×20 for n log n and ×25 for n log² n. Closest pair grows like n log² n, as expected from re-sorting the strip in every call. Quick Sort with 5 distinct values stays close to linear. Inversions and random Quick Sort grow a little faster than n log n.
+- **Does theory predict the time?** It predicts the shape of the growth, not the milliseconds. At n ≈ 10⁶ the measured growth is somewhat above the theoretical one, because immutable lists use hundreds of MB and the garbage collector works harder.
+- **3-way partition:** with 5 distinct values Quick Sort is more than 10× faster than on random values at the largest size.
+- **Unusual sizes:** Toy times are microseconds, so clock noise dominates. Between 8,192 and 16,384 several scenarios grow less than expected, which points to JIT optimisation between series.
 
 ## Sources of error
 

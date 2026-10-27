@@ -1,85 +1,64 @@
-# Generative AI log
+# Generative AI usage log
 
-AI use level: **3. Collaboration with GenAI**. Prompts are quoted as typed (in Spanish).
+**AI use level: 3. Collaboration with GenAI.**
+Model used: Claude (Claude Code). Assigned role: *personal tutor / functional programming mentor and technical documentation reviewer*.
+Base rule imposed on the model: **"NO quiero que hagas el proyecto completo por mí"** — the author decides and writes the logic; Claude clarifies specific doubts, proposes options and reviews.
 
-## Session 1 — Setup and first algorithms
+> Prompts are quoted exactly as typed (in Spanish). Every exchange follows the pattern: **specific question from the author → clarification from Claude → final decision by the author.**
 
-- **Tool:** ChatGPT (GPT-4o)
-- **Own input:** assignment statement (`CyEDII_2026-2_TI1.docx`) and a first draft of `Inversions.scala`.
-- **Prompts:**
-  1. "tengo este merge sort en scala, como lo modifico para contar inversiones sin dejar de ser funcional? no puedo usar map ni filter"
-  2. "y como evito que sea recursivo normal, necesito que sea tail recursive con acumulador"
-- **Output:** suggestion to carry an accumulator and count the remaining left half when taking from the right half.
-- **Own review:** rewrote it with an explicit accumulator and `@tailrec`; the AI's first version still used `length`, so I replaced it with a counter to keep it linear.
+---
 
-## Session 2 — Three-way Quick Sort
+## Reference version (before the refactor)
 
-- **Tool:** ChatGPT (GPT-4o)
-- **Own input:** `QuickSort.scala` skeleton.
-- **Prompts:**
-  1. "particion de tres vias en scala puro, sin filter, con pattern matching"
-  2. "por que el peor caso sigue siendo n^2 y como lo explico"
-- **Output:** partition into `<`, `==`, `>` with three recursive helper functions; recurrence notes.
-- **Own review:** kept the helpers tail-recursive; wrote the recurrence and its resolution myself in `complexity.md`.
+- **What it is:** a first complete version (`Algorithms.scala` with `object`s, `AlgorithmTests.scala`, docs and a first experiment), generated with AI.
+- **How it was used:** only as a guide to the expected behavior. It was deleted after the refactor; the final code was written again under the rules below.
 
-## Session 3 — Closest Points
+---
 
-- **Tool:** ChatGPT (GPT-4o)
-- **Own input:** `ClosestPoints.scala` and the strip idea from Cormen.
-- **Prompts:**
-  1. "closest pair en scala, ordenar por x y luego la franja por y, todo recursivo"
-  2. "el enunciado dice mostrar 4 decimales, como formateo un Double en scala sin printf?"
-- **Output:** divide-and-conquer skeleton; formatting tip for the final distance.
-- **Own review:** limited the strip scan to at most 7 neighbours and wrote the induction proof by hand.
+## Refactor with AI as tutor (Claude Code)
 
-## Session 4 — Docs, translation and redundancy
+**Own input:** the project, the refactor plan (one class per algorithm, JUnit tests) and the rules: no `var`, no higher-order functions, recursion, `@tailrec`, pattern matching, immutable lists.
 
-- **Tool:** Claude (Claude Code)
-- **Own input:** the full project (code, tests, docs).
-- **Prompts:**
-  1. "revisa los .md, quitá redundancia y traducí todo a inglés"
-  2. "¿qué más corregirías en la redacción?"
-  3. "completá los integrantes, solo yo"
-  4. "keep it simple, no seas redundante en nada"
-- **Output:** tightened README, translated docs to English, removed repeated definitions across `correctness.md`, `complexity.md` and `experiment-report.md`.
-- **Own review:** checked every translated section against the original; fixed two places where the AI over-simplified a recurrence.
+**Role given to the AI:**
 
-## Session 5 — Experiments review
+> "Actúa como mi profesor particular, mentor de programación funcional y revisor de documentación técnica… NO quiero que hagas el proyecto completo por mí".
 
-- **Tool:** Claude (Claude Code)
-- **Own input:** `Benchmark.scala`, `AlgorithmTests.scala` and the first batch of measurements.
-- **Prompts:**
-  1. "mis tamaños de entrada no llegan a 10^6, están mal las categorías"
-  2. "las mediciones las tomé en otra máquina, como lo arreglo"
-  3. "hacé que el script de gráficas use solo la librería estándar y grafique en SVG"
-- **Output:** new size scale (16 → 1,048,576), CPU/RAM logging, pure-standard-library plotting.
-- **Own review:** re-ran all measurements on my machine (Ryzen 7 260, 31.3 GiB, Windows 11) and re-generated the plots myself.
+### Interaction log (specific questions → clarification → decision)
 
-## Issues found during review
+| # | Author's question (prompt) | Claude's clarification | Author's decision |
+|---|---|---|---|
+| 1 | "pivote con semilla ya que usar head no tendría sentido porque básicamente estaría forzando siempre el peor caso" | Explains why `head` degenerates to O(n²) on sorted input and how a fixed seed makes the pivot random but reproducible for the tests. | **Random pivot with a seed**, not `head`. |
+| 2 | "la pila vamos con un acumulador de cola para usar el `@tailrec`, y evitar un desbordamiento" | Confirms that Quick Sort with partitioning + plain recursion is not *tail-recursive* and proposes rewriting it with a tail accumulator so `@tailrec` can be annotated. | **Tail accumulator** in `sortWithAcc` to enable `@tailrec`. |
+| 3 | "evitemos el `reverse`, no tiene sentido agregarle O(n) para ordenarlo si podemos cambiar el orden" | Points out where the `reverse` appeared and how to invert the concatenation order to avoid it. | **No `reverse`** in Quick Sort. |
+| 4 | "una tupla" | Weighs the pros and cons of representing points as `(Double, Double)` versus a case class. | **Points as tuples**. |
+| 5 | "necesito validar para los test y benchmarks" | Suggests using `require` in constructors/inputs to fail fast and feed valid inputs to tests and benchmarks. | **Validation with `require`**. |
 
-- The first experiment had no input of size ≥ 10⁶ and the size categories were mislabelled.
-- Early measurements had been taken on a different machine.
-- `build.sbt` did not set the JVM memory the report claimed.
-- The test design listed a case that actually ran in `Benchmark`.
+### Actual division of writing
 
-## Changes made
+- **Written by the author:** all the algorithm logic —
+  `QuickSort3` (`sortWithAcc`, `partition3`, `sort`), `ClosestPair` (validation, conversion, both Merge Sorts, `bruteForce`, `strip`, `scanStrip`, `solve`, and most of its Scaladoc), `CountingInversions` (`sortAndCount`, `mergeAndCount`) and the test fixes (imports, `QuickSort3` seed).
+-Docs, experiment report and slides updated to the new code
+- **Written by the AI on request** (the author asked, Claude wrote):
+  - Scaladoc of `QuickSort3` → *"el scaladoc te lo dejo a ti"*.
+  - Complexity in the Scaladoc of `ClosestPair` and `CountingInversions`, the `count` in one line and renaming the class back to `CountingInversions` → *"hazlos tú"*, *"haz el 1 también"*.
+  - `utils` updated to the new packages and classes; `var sink` in `Benchmark` replaced by a checksum → *"los utils TÚ ENCÁRGATE DE ESOS… si no influye en nada quítalo"*.
+  - `Main` rewritten for the new classes → *"arregla main tú"*.
+- **Checked by the AI on every review:** compilation and quick runs of each class on a scratch copy outside the project.
 
-- Rewrote and simplified every doc in English.
-- `Benchmark.scala`: new sizes, assignment categories, CPU/RAM logging.
-- `build.sbt`: `-Xms256m -Xmx2g`.
-- Plotting script: standard library only, SVG output, measured vs. theoretical table.
-- Re-measured on my own machine.
+---
 
 ## Validation
 
-- Project compiles with no warnings.
-- All tests pass.
-- `Main` prints the expected `2`, `2 2 2 3 9` and `1.4142`.
+- `sbt test`: 20 tests, 20 passed (12 kept from the reference version, 8 added by the author).
+- `Main` prints `2`, `2 2 2 3 9` and `1.4142`.
+- Benchmark repeated with the refactored code; see `experiment-report.md`.
 
-## Own contributions
+---
 
-- Wrote the three algorithms and kept them pure, immutable and `@tailrec`.
-- Designed the test cases and the test-design tables.
-- Wrote the structural induction proofs and the recurrence solutions.
-- Ran the experiments and produced the final plots and analysis.
-- Decided the repository structure and the commit order.
+### How the collaborative flow looks (summary)
+
+1. **The author asks something concrete** (not "do the project for me").
+2. **Claude clarifies the doubt and lays out options**, without writing the solution unless asked.
+3. **The author decides and writes the logic.**
+4. **Claude writes the supporting material** (Scaladoc, docs, `utils`, `Main`) when the author delegates it.
+5. **Claude verifies** compilation and a quick run on every iteration.
